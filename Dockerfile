@@ -8,7 +8,7 @@
 
 ################################################################################
 # Create a stage for building the application.
-ARG GO_VERSION=1.25.4
+ARG GO_VERSION=1.25.6
 FROM golang:${GO_VERSION} AS build
 WORKDIR /src
 
@@ -28,7 +28,7 @@ ARG TARGETARCH
 # Leverage a bind mount to the current directory to avoid having to copy the
 # source code into the container.
 COPY . .
-RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/server ./cmd/smtp-server/main.go
+RUN CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/server ./cmd/rag-server/main.go
 
 ################################################################################
 # Create a new stage for running the application that contains the minimal
