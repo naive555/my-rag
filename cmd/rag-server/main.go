@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("Config loaded, port:", cfg.AppPort)
+	log.Println("Config loaded, port:", cfg.Server.Port)
 
 	llmClient := llm.NewLlmClient(
 		cfg.OllamaURL,
@@ -32,5 +32,5 @@ func main() {
 	h := http.NewHandler(ragSvc)
 	http.Register(app, h)
 
-	log.Fatal(app.Listen(":" + cfg.AppPort))
+	log.Fatal(app.Listen(":" + cfg.Server.Port))
 }
