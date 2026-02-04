@@ -1,0 +1,13 @@
+name: rag-server
+
+services:
+  app:
+    container_name: rag-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3063:3063"
+    volumes:
+      - ./config:/config
+    restart: always
