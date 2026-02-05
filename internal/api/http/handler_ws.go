@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-	"log"
 	"rag-poc/internal/lang"
 
 	"github.com/gofiber/contrib/websocket"
@@ -13,8 +12,6 @@ type Req struct {
 }
 
 func (h *Handler) AskWS(c *websocket.Conn) {
-	log.Println("AskWS handler called")
-
 	var req Req
 	if err := c.ReadJSON(&req); err != nil {
 		return
