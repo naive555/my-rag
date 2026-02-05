@@ -85,15 +85,17 @@ Ask (non-streaming)
 GET /ask?q=your question
 ```
 
-### Response:
+Response:
 
 - Plain text answer
 
 Ask (streaming)
 
+```text
 GET /ask-stream?q=your question
+```
 
-### Response:
+Response:
 
 - text/event-stream
 
@@ -131,7 +133,3 @@ GET /ask-stream?q=your question
 ## License
 
 MIT
-
-```
-
-```
