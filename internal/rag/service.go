@@ -22,26 +22,26 @@ func NewService(llmClient *llm.LlmClient) *Service {
 	}
 }
 
-func (s *Service) Query(ctx context.Context, q string) (string, error) {
+func (s *Service) Query(ctx context.Context, q, lang string) (string, error) {
 	if strings.TrimSpace(q) == "" {
 		return "", fmt.Errorf("empty query")
 	}
 
 	chunks := s.retrieve(ctx, q)
 
-	prompt := BuildPrompt(chunks, q)
+	prompt := BuildPrompt(chunks, q, lang)
 
 	return s.llm.GeneratePrompt(prompt)
 }
 
-func (s *Service) QueryStream(ctx context.Context, q string, onToken func(string)) error {
+func (s *Service) QueryStream(ctx context.Context, q, lang string, onToken func(string)) error {
 	if strings.TrimSpace(q) == "" {
 		return fmt.Errorf("empty query")
 	}
 
 	chunks := s.retrieve(ctx, q)
 
-	prompt := BuildPrompt(chunks, q)
+	prompt := BuildPrompt(chunks, q, lang)
 
 	return s.llm.StreamGeneratePrompt(prompt, onToken)
 }

@@ -2,6 +2,7 @@ package http
 
 import (
 	"bufio"
+	"rag-poc/internal/lang"
 	"rag-poc/internal/rag"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,7 +22,9 @@ func (h *Handler) Ask(c *fiber.Ctx) error {
 		return c.Status(400).SendString("missing q param")
 	}
 
-	resp, err := h.RAG.Query(c.Context(), q)
+	lang := lang.Detect(q)
+
+	resp, err := h.RAG.Query(c.Context(), q, lang)
 	if err != nil {
 		return c.Status(500).SendString(err.Error())
 	}
@@ -35,13 +38,15 @@ func (h *Handler) AskStream(c *fiber.Ctx) error {
 		return c.Status(400).SendString("missing q")
 	}
 
+	lang := lang.Detect(q)
+
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 		w.WriteString("Answer: ")
-		_ = h.RAG.QueryStream(c.Context(), q, func(token string) {
+		_ = h.RAG.QueryStream(c.Context(), q, lang, func(token string) {
 			w.WriteString(token)
 			w.Flush()
 		})

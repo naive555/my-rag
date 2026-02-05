@@ -2,13 +2,13 @@ package rag
 
 import "strings"
 
-func BuildPrompt(chunks []string, q string) string {
+func BuildPrompt(chunks []string, q, lang string) string {
 	var sb strings.Builder
 
 	sb.WriteString("SYSTEM:\n")
-	sb.WriteString("Answer using only the context. ")
+	sb.WriteString("Answer in " + lang + ". ")
 	sb.WriteString("Be concise. Max 3 sentences. ")
-	sb.WriteString("Do not explain your reasoning. ")
+	sb.WriteString("Use only the context. ")
 	sb.WriteString("If not found, say \"I don't know\".\n\n")
 
 	sb.WriteString("CONTEXT:\n")
@@ -17,9 +17,7 @@ func BuildPrompt(chunks []string, q string) string {
 	} else {
 		sb.WriteString(strings.Join(chunks, "\n"))
 	}
-	sb.WriteString("\n\n")
-
-	sb.WriteString("USER:\n")
+	sb.WriteString("\n\nUSER:\n")
 	sb.WriteString(q)
 
 	return sb.String()
