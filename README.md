@@ -66,18 +66,24 @@ This project demonstrates a clean, production-oriented architecture for building
 
 Start Ollama and pull the required models:
 
+```text
 ollama pull qwen2.5:7b-instruct
 ollama pull nomic-embed-text
+```
 
 Run the server:
 
+```text
 go run ./cmd/rag-server
+```
 
 API Endpoints
 
 Ask (non-streaming)
 
+```text
 GET /ask?q=your question
+```
 
 ### Response:
 
@@ -91,7 +97,15 @@ GET /ask-stream?q=your question
 
 - text/event-stream
 
-RAG Flow 1. Incoming question 2. Language or policy classification 3. Vector search (optional) 4. Prompt construction 5. LLM generation (streaming or non-streaming)
+---
+
+## RAG Flow
+
+1. Incoming question
+2. Language or policy classification
+3. Vector search (optional)
+4. Prompt construction
+5. LLM generation (streaming or non-streaming)
 
 ---
 
@@ -117,3 +131,7 @@ RAG Flow 1. Incoming question 2. Language or policy classification 3. Vector sea
 ## License
 
 MIT
+
+```
+
+```
