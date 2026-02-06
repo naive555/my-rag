@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"rag-poc/internal/classifier"
 	"rag-poc/internal/llm"
 )
 
@@ -22,31 +23,43 @@ func NewService(llmClient *llm.LlmClient) *Service {
 	}
 }
 
-func (s *Service) Query(ctx context.Context, question, lang string) (string, error) {
-	if strings.TrimSpace(question) == "" {
+func (s *Service) Query(ctx context.Context, q, lang string) (string, error) {
+	if strings.TrimSpace(q) == "" {
 		return "", fmt.Errorf("empty query")
 	}
 
-	chunks := s.retrieve(ctx, question)
+	res := classifier.Classify(q)
+	policy := classifier.Resolve(res.Domain)
 
-	prompt := BuildPrompt(chunks, question, lang)
+	var chunks []string
+	if policy.UseRAG {
+		chunks = s.retrieve(ctx, q, res.Domain, policy.TopK)
+	}
+
+	prompt := BuildPrompt(chunks, q, lang, policy.MaxSentences)
 
 	return s.llm.GeneratePrompt(prompt)
 }
 
-func (s *Service) QueryStream(ctx context.Context, question, lang string, onToken func(string)) error {
-	if strings.TrimSpace(question) == "" {
+func (s *Service) QueryStream(ctx context.Context, q, lang string, onToken func(string)) error {
+	if strings.TrimSpace(q) == "" {
 		return fmt.Errorf("empty query")
 	}
 
-	chunks := s.retrieve(ctx, question)
+	res := classifier.Classify(q)
+	policy := classifier.Resolve(res.Domain)
 
-	prompt := BuildPrompt(chunks, question, lang)
+	var chunks []string
+	if policy.UseRAG {
+		chunks = s.retrieve(ctx, q, res.Domain, policy.TopK)
+	}
+
+	prompt := BuildPrompt(chunks, q, lang, policy.MaxSentences)
 
 	return s.llm.StreamGeneratePrompt(prompt, onToken)
 }
 
-func (s *Service) retrieve(ctx context.Context, q string) []string {
+func (s *Service) retrieve(ctx context.Context, q string, domain classifier.Domain, topK int) []string {
 	// FUTURE:
 	// - embed(q)
 	// - vector search

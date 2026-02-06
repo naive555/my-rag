@@ -1,8 +1,9 @@
 package lang
 
 const (
-	EN string = "en"
-	TH string = "th"
+	EN  string = "en"
+	TH  string = "th"
+	UNK string = "unknown"
 )
 
 func Detect(text string) string {

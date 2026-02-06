@@ -8,7 +8,7 @@ import (
 )
 
 type Req struct {
-	Question string `json:"question"`
+	Question string `json:"q"`
 }
 
 func (h *Handler) AskWS(c *websocket.Conn) {

@@ -17,14 +17,14 @@ func NewHandler(ragSvc *rag.Service) *Handler {
 }
 
 func (h *Handler) Ask(c *fiber.Ctx) error {
-	question := c.Query("q")
-	if question == "" {
+	q := c.Query("q")
+	if q == "" {
 		return c.Status(400).SendString("missing question")
 	}
 
-	lang := lang.Detect(question)
+	lang := lang.Detect(q)
 
-	resp, err := h.RAG.Query(c.Context(), question, lang)
+	resp, err := h.RAG.Query(c.Context(), q, lang)
 	if err != nil {
 		return c.Status(500).SendString(err.Error())
 	}
@@ -33,12 +33,12 @@ func (h *Handler) Ask(c *fiber.Ctx) error {
 }
 
 func (h *Handler) AskStream(c *fiber.Ctx) error {
-	question := c.Query("q")
-	if question == "" {
+	q := c.Query("q")
+	if q == "" {
 		return c.Status(400).SendString("missing question")
 	}
 
-	lang := lang.Detect(question)
+	lang := lang.Detect(q)
 
 	c.Set("Content-Type", "text/event-stream")
 	c.Set("Cache-Control", "no-cache")
@@ -46,7 +46,7 @@ func (h *Handler) AskStream(c *fiber.Ctx) error {
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
 		w.WriteString("Answer: ")
-		_ = h.RAG.QueryStream(c.Context(), question, lang, func(token string) {
+		_ = h.RAG.QueryStream(c.Context(), q, lang, func(token string) {
 			w.WriteString(token)
 			w.Flush()
 		})
