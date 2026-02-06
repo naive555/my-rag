@@ -8,12 +8,11 @@ import (
 func BuildPrompt(chunks []string, q, lang string, maxSentences int) string {
 	var sb strings.Builder
 
-	// --- SYSTEM ---
 	sb.WriteString("SYSTEM:\n")
 	sb.WriteString("You are an assistant for a business knowledge system.\n")
-	sb.WriteString("Answer in " + lang + ". ")
-	sb.WriteString("Be concise. ")
-	sb.WriteString("Limit your answer to ")
+	sb.WriteString("Answer ONLY in " + lang + ". ")
+	sb.WriteString("DO NOT use any other language.\n")
+	sb.WriteString("Be concise. Limit your answer to ")
 	sb.WriteString(strconv.Itoa(maxSentences))
 	sb.WriteString(" sentences.\n")
 
@@ -26,14 +25,12 @@ func BuildPrompt(chunks []string, q, lang string, maxSentences int) string {
 
 	sb.WriteString("\n")
 
-	// --- CONTEXT ---
 	if len(chunks) > 0 {
 		sb.WriteString("CONTEXT:\n")
 		sb.WriteString(strings.Join(chunks, "\n---\n"))
 		sb.WriteString("\n\n")
 	}
 
-	// --- USER ---
 	sb.WriteString("USER:\n")
 	sb.WriteString(q)
 
