@@ -10,7 +10,10 @@ import (
 )
 
 type Config struct {
-	Server     Server
+	Env string
+
+	Server Server
+
 	OllamaURL  string
 	LLMModel   string
 	EmbedModel string
@@ -32,6 +35,7 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
+		Env:        getEnv("NODE_ENV", ""),
 		OllamaURL:  getEnv("OLLAMA_URL", ""),
 		LLMModel:   getEnv("LLM_MODEL", "smallthinker"),
 		EmbedModel: getEnv("EMBED_MODEL", "nomic-embed-text"),
@@ -45,8 +49,7 @@ func Load() (*Config, error) {
 
 	viper.AddConfigPath("./config")
 
-	env := getEnv("NODE_ENV", "")
-	switch env {
+	switch cfg.Env {
 	case "production":
 		viper.SetConfigName("config-prod")
 	case "dev":

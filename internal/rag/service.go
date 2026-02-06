@@ -7,18 +7,22 @@ import (
 
 	"rag-poc/internal/classifier"
 	"rag-poc/internal/llm"
+
+	"go.uber.org/zap"
 )
 
 type Service struct {
+	log *zap.Logger
 	llm *llm.LlmClient
 }
 
-func NewService(llmClient *llm.LlmClient) *Service {
+func NewService(log *zap.Logger, llmClient *llm.LlmClient) *Service {
 	if llmClient == nil {
 		panic("rag: llmClient is required")
 	}
 
 	return &Service{
+		log: log,
 		llm: llmClient,
 	}
 }

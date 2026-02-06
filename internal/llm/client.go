@@ -6,18 +6,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type LlmClient struct {
+	log     *zap.Logger
 	baseURL string
 	model   string
 	http    *http.Client
 }
 
-func NewLlmClient(baseURL, model string, timeout time.Duration) *LlmClient {
+func NewLlmClient(log *zap.Logger, baseURL, model string, timeout time.Duration) *LlmClient {
 	if baseURL == "" {
 		panic("llm: baseURL is required")
 	}
@@ -26,6 +28,7 @@ func NewLlmClient(baseURL, model string, timeout time.Duration) *LlmClient {
 	}
 
 	return &LlmClient{
+		log:     log,
 		baseURL: baseURL,
 		model:   model,
 		http: &http.Client{
@@ -53,7 +56,10 @@ type StreamChunk struct {
 func (c *LlmClient) GeneratePrompt(prompt string) (string, error) {
 	context := "llm.GeneratePrompt"
 
-	log.Printf("%s request with prompt: %s", context, prompt)
+	c.log.Info("request",
+		zap.String("context", context),
+		zap.String("prompt_preview", prompt[:min(len(prompt), 100)]),
+	)
 
 	reqBody := GenerateRequest{
 		Model:  c.model,
@@ -93,14 +99,21 @@ func (c *LlmClient) GeneratePrompt(prompt string) (string, error) {
 		return "", err
 	}
 
-	log.Printf("%s done with result: %s", context, result.Response)
+	c.log.Info("request",
+		zap.String("context", context),
+		zap.String("prompt_preview", result.Response[:min(len(result.Response), 100)]),
+	)
+
 	return result.Response, nil
 }
 
 func (c *LlmClient) StreamGeneratePrompt(prompt string, onToken func(string)) error {
 	context := "llm.StreamGeneratePrompt"
 
-	log.Printf("%s request with prompt: %s", context, prompt)
+	c.log.Info("request",
+		zap.String("context", context),
+		zap.String("prompt_preview", prompt[:min(len(prompt), 100)]),
+	)
 
 	reqBody := GenerateRequest{
 		Model:  c.model,
@@ -142,7 +155,10 @@ func (c *LlmClient) StreamGeneratePrompt(prompt string, onToken func(string)) er
 			onToken(chunk.Response)
 		}
 		if chunk.Done {
-			log.Printf("%s done with result: %s", context, result)
+			c.log.Info("request",
+				zap.String("context", context),
+				zap.String("prompt_preview", result[:min(len(result), 100)]),
+			)
 			break
 		}
 	}

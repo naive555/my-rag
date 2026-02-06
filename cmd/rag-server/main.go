@@ -1,36 +1,51 @@
 package main
 
 import (
-	"log"
+	"time"
+
 	"rag-poc/internal/api/http"
 	"rag-poc/internal/config"
 	"rag-poc/internal/llm"
 	"rag-poc/internal/rag"
-	"time"
+	"rag-poc/pkg/logger"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 func main() {
-	app := fiber.New()
-
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
-	log.Println("Config loaded, port:", cfg.Server.Port)
+	log, err := logger.New(cfg.Env)
+	if err != nil {
+		panic(err)
+	}
+	defer log.Sync()
+
+	log.Info("config loaded",
+		zap.String("port", cfg.Server.Port),
+	)
+
+	app := fiber.New()
+
+	app.Use(http.LoggerMiddleware(log))
 
 	llmClient := llm.NewLlmClient(
+		log,
 		cfg.OllamaURL,
 		cfg.LLMModel,
 		5*time.Minute,
 	)
 
-	ragSvc := rag.NewService(llmClient)
+	ragSvc := rag.NewService(log, llmClient)
 
-	h := http.NewHandler(ragSvc)
+	h := http.NewHandler(log, ragSvc)
 	http.Register(app, h)
 
-	log.Fatal(app.Listen(":" + cfg.Server.Port))
+	log.Fatal("server stopped",
+		zap.Error(app.Listen(":"+cfg.Server.Port)),
+	)
 }
