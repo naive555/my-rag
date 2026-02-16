@@ -37,7 +37,7 @@ func (h *Handler) Ask(c *fiber.Ctx) error {
 		return c.Status(500).SendString(err.Error())
 	}
 
-	log.Info("context", zap.String("resp", resp[:min(len(resp), 100)]))
+	log.Info("context", zap.String("resp", resp[:min(len(resp), 100)]+"..."))
 
 	return c.SendString(resp)
 }
@@ -69,7 +69,7 @@ func (h *Handler) AskStream(c *fiber.Ctx) error {
 			w.Flush()
 		})
 
-		log.Info("context", zap.String("resp", resp[:min(len(resp), 100)]))
+		log.Info("context", zap.String("resp", resp[:min(len(resp), 100)]+"..."))
 	})
 
 	return nil

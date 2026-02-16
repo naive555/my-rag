@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -58,7 +59,7 @@ func (c *LlmClient) GeneratePrompt(prompt string) (string, error) {
 
 	c.log.Info("request",
 		zap.String("context", context),
-		zap.String("prompt_preview", prompt[:min(len(prompt), 100)]),
+		zap.String("prompt_preview", prompt[:min(len(prompt), 100)]+"..."),
 	)
 
 	reqBody := GenerateRequest{
@@ -101,7 +102,7 @@ func (c *LlmClient) GeneratePrompt(prompt string) (string, error) {
 
 	c.log.Info("request",
 		zap.String("context", context),
-		zap.String("prompt_preview", result.Response[:min(len(result.Response), 100)]),
+		zap.String("prompt_preview", result.Response[:min(len(result.Response), 100)]+"..."),
 	)
 
 	return result.Response, nil
@@ -112,7 +113,7 @@ func (c *LlmClient) StreamGeneratePrompt(prompt string, onToken func(string)) er
 
 	c.log.Info("request",
 		zap.String("context", context),
-		zap.String("prompt_preview", prompt[:min(len(prompt), 100)]),
+		zap.String("prompt_preview", prompt[:min(len(prompt), 100)]+"..."),
 	)
 
 	reqBody := GenerateRequest{
@@ -144,20 +145,23 @@ func (c *LlmClient) StreamGeneratePrompt(prompt string, onToken func(string)) er
 	defer resp.Body.Close()
 
 	scanner := bufio.NewScanner(resp.Body)
-	var result string
+	var sampleResult strings.Builder
 	for scanner.Scan() {
 		var chunk StreamChunk
 		if err := json.Unmarshal(scanner.Bytes(), &chunk); err != nil {
 			continue
 		}
 		if chunk.Response != "" {
-			result += chunk.Response
+			if len(chunk.Response) < 100 {
+				sampleResult.WriteString(chunk.Response)
+			}
+
 			onToken(chunk.Response)
 		}
 		if chunk.Done {
 			c.log.Info("request",
 				zap.String("context", context),
-				zap.String("prompt_preview", result[:min(len(result), 100)]),
+				zap.String("prompt_preview", sampleResult.String()+"..."),
 			)
 			break
 		}
