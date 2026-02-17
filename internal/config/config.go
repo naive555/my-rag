@@ -22,6 +22,10 @@ type Config struct {
 	DBName   string
 	ColName  string
 
+	RedisAddr string
+	RedisPass string
+	RedisDB   int
+
 	TopK int
 }
 
@@ -43,6 +47,10 @@ func Load() (*Config, error) {
 		MongoURI: getEnv("MONGO_URI", ""),
 		DBName:   getEnv("DB_NAME", "rag"),
 		ColName:  getEnv("COL_NAME", "chunks"),
+
+		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPass: getEnv("REDIS_PASS", ""),
+		RedisDB:   getEnvInt("REDIS_DB", 0),
 
 		TopK: getEnvInt("TOP_K", 4),
 	}

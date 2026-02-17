@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"rag-poc/internal/cache"
 	"rag-poc/internal/classifier"
 	"rag-poc/internal/llm"
 
@@ -12,18 +13,20 @@ import (
 )
 
 type Service struct {
-	log *zap.Logger
-	llm *llm.LlmClient
+	log   *zap.Logger
+	llm   *llm.LlmClient
+	redis *cache.Redis
 }
 
-func NewService(log *zap.Logger, llmClient *llm.LlmClient) *Service {
+func NewService(log *zap.Logger, llmClient *llm.LlmClient, redisClient *cache.Redis) *Service {
 	if llmClient == nil {
 		panic("rag: llmClient is required")
 	}
 
 	return &Service{
-		log: log,
-		llm: llmClient,
+		log:   log,
+		llm:   llmClient,
+		redis: redisClient,
 	}
 }
 

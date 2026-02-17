@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"rag-poc/internal/api/http"
+	"rag-poc/internal/cache"
 	"rag-poc/internal/config"
 	"rag-poc/internal/llm"
 	"rag-poc/internal/rag"
@@ -33,6 +34,15 @@ func main() {
 
 	app.Use(http.LoggerMiddleware(log))
 
+	redisClient, err := cache.NewRedis(cache.Config{
+		Addr:     cfg.RedisAddr,
+		Password: cfg.RedisPass,
+		DB:       cfg.RedisDB,
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	llmClient := llm.NewLlmClient(
 		log,
 		cfg.OllamaURL,
@@ -40,7 +50,7 @@ func main() {
 		5*time.Minute,
 	)
 
-	ragSvc := rag.NewService(log, llmClient)
+	ragSvc := rag.NewService(log, llmClient, redisClient)
 
 	h := http.NewHandler(log, ragSvc)
 	http.Register(app, h)

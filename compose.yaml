@@ -1,13 +1,54 @@
 name: rag-server
 
 services:
+  ollama:
+    container_name: rag_ollama
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - rag-network
+
+  redis:
+    container_name: rag_redis
+    image: redis:alpine3.21
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - rag-network
+
   app:
-    container_name: rag-server
+    container_name: rag_app
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env.docker
+    depends_on:
+      ollama:
+        condition: service_started
+      redis:
+        condition: service_healthy
     ports:
       - "3063:3063"
     volumes:
       - ./config:/config
-    restart: always
+    restart: unless-stopped
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge
+
+volumes:
+  ollama-data:
