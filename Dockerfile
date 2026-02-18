@@ -66,7 +66,7 @@ COPY --from=build /bin/server /bin/
 COPY /config /config
 
 # Expose the port that the application listens on.
-EXPOSE 30225
+EXPOSE 3000
 
 # What the container should run when it is started.
 ENTRYPOINT [ "/bin/server" ]
