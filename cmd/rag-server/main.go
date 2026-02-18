@@ -54,7 +54,7 @@ func main() {
 		5*time.Minute,
 	)
 
-	ragSvc := rag.NewService(log, llmClient, conv)
+	ragSvc := rag.NewService(cfg, log, llmClient, conv)
 
 	h := http.NewHandler(log, ragSvc)
 	http.Register(app, h)

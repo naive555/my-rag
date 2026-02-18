@@ -25,6 +25,8 @@ type Config struct {
 	RedisAddr string
 	RedisPass string
 	RedisDB   int
+	ConvTtl   int
+	ConvMax   int
 
 	TopK int
 }
@@ -51,6 +53,8 @@ func Load() (*Config, error) {
 		RedisAddr: getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPass: getEnv("REDIS_PASS", ""),
 		RedisDB:   getEnvInt("REDIS_DB", 0),
+		ConvTtl:   getEnvInt("CONV_TTL", 0),
+		ConvMax:   getEnvInt("CONV_MAX", 0),
 
 		TopK: getEnvInt("TOP_K", 4),
 	}

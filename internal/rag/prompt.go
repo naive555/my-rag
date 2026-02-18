@@ -72,20 +72,20 @@ func BuildPromptWithHistory(
 }
 
 // Simple Prompt
-// func BuildPrompt(chunks []string, q, lang string) string {
-// 	var sb strings.Builder
+func BuildSimplePrompt(chunks []string, q, lang string) string {
+	var sb strings.Builder
 
-// 	sb.WriteString("SYSTEM:\n")
-// 	sb.WriteString("Answer in " + lang + ". ")
-// 	sb.WriteString("Be concise. Max 3 sentences. \n")
+	sb.WriteString("SYSTEM:\n")
+	sb.WriteString("Answer in " + lang + ". ")
+	sb.WriteString("Be concise. Max 3 sentences. \n")
 
-// 	if len(chunks) > 0 {
-// 		sb.WriteString("SYSTEM:\nYou answer only from the context. If missing, say you don't know.\n\n" +
-// 			"CONTEXT:\n" + strings.Join(chunks, "\n---\n") +
-// 			"\n\nUSER:\n" + q)
-// 	} else {
-// 		sb.WriteString("You are a helpful assistant.\n\nUser:\n" + q)
-// 	}
+	if len(chunks) > 0 {
+		sb.WriteString("SYSTEM:\nYou answer only from the context. If missing, say you don't know.\n\n" +
+			"CONTEXT:\n" + strings.Join(chunks, "\n---\n") +
+			"\n\nUSER:\n" + q)
+	} else {
+		sb.WriteString("You are a helpful assistant.\n\nUser:\n" + q)
+	}
 
-// 	return sb.String()
-// }
+	return sb.String()
+}
