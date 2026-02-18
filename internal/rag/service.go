@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"rag-poc/internal/cache"
 	"rag-poc/internal/classifier"
@@ -13,24 +14,24 @@ import (
 )
 
 type Service struct {
-	log   *zap.Logger
-	llm   *llm.LlmClient
-	redis *cache.Redis
+	log  *zap.Logger
+	llm  *llm.LlmClient
+	conv *cache.Conversation
 }
 
-func NewService(log *zap.Logger, llmClient *llm.LlmClient, redisClient *cache.Redis) *Service {
+func NewService(log *zap.Logger, llmClient *llm.LlmClient, conv *cache.Conversation) *Service {
 	if llmClient == nil {
 		panic("rag: llmClient is required")
 	}
 
 	return &Service{
-		log:   log,
-		llm:   llmClient,
-		redis: redisClient,
+		log:  log,
+		llm:  llmClient,
+		conv: conv,
 	}
 }
 
-func (s *Service) Query(ctx context.Context, q, lang string) (string, error) {
+func (s *Service) Query(ctx context.Context, sid, q, lang string) (string, error) {
 	if strings.TrimSpace(q) == "" {
 		return "", fmt.Errorf("empty query")
 	}
@@ -43,12 +44,36 @@ func (s *Service) Query(ctx context.Context, q, lang string) (string, error) {
 		chunks = s.retrieve(ctx, q, res.Domain, policy.TopK)
 	}
 
-	prompt := BuildPrompt(chunks, q, lang, policy.MaxSentences)
+	history, _ := s.conv.GetRecent(ctx, sid, 10)
 
-	return s.llm.GeneratePrompt(prompt)
+	prompt := BuildPromptWithHistory(
+		chunks,
+		history,
+		q,
+		lang,
+		policy.MaxSentences,
+	)
+
+	answer, err := s.llm.GeneratePrompt(prompt)
+	if err != nil {
+		return "", err
+	}
+
+	redisCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_ = s.conv.AppendMessage(redisCtx, sid, "U:"+q, 30*time.Minute, 20)
+	_ = s.conv.AppendMessage(redisCtx, sid, "A:"+answer, 30*time.Minute, 20)
+
+	return answer, nil
 }
 
-func (s *Service) QueryStream(ctx context.Context, q, lang string, onToken func(string)) error {
+func (s *Service) QueryStream(
+	ctx context.Context,
+	sid, q, lang string,
+	onToken func(string),
+) error {
+
 	if strings.TrimSpace(q) == "" {
 		return fmt.Errorf("empty query")
 	}
@@ -61,9 +86,35 @@ func (s *Service) QueryStream(ctx context.Context, q, lang string, onToken func(
 		chunks = s.retrieve(ctx, q, res.Domain, policy.TopK)
 	}
 
-	prompt := BuildPrompt(chunks, q, lang, policy.MaxSentences)
+	history, _ := s.conv.GetRecent(ctx, sid, 10)
 
-	return s.llm.StreamGeneratePrompt(prompt, onToken)
+	prompt := BuildPromptWithHistory(
+		chunks,
+		history,
+		q,
+		lang,
+		policy.MaxSentences,
+	)
+
+	var sb strings.Builder
+
+	err := s.llm.StreamGeneratePrompt(prompt, func(tok string) {
+		sb.WriteString(tok)
+		onToken(tok)
+	})
+	if err != nil {
+		return err
+	}
+
+	answer := sb.String()
+
+	redisCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_ = s.conv.AppendMessage(redisCtx, sid, "U:"+q, 30*time.Minute, 20)
+	_ = s.conv.AppendMessage(redisCtx, sid, "A:"+answer, 30*time.Minute, 20)
+
+	return nil
 }
 
 func (s *Service) retrieve(ctx context.Context, q string, domain classifier.Domain, topK int) []string {

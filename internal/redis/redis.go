@@ -1,4 +1,4 @@
-package cache
+package redis
 
 import (
 	"context"
@@ -34,14 +34,6 @@ func NewRedis(cfg Config) (*Redis, error) {
 	return &Redis{client: rdb}, nil
 }
 
-func (r *Redis) Set(ctx context.Context, key string, val string, ttl time.Duration) error {
-	return r.client.Set(ctx, key, val, ttl).Err()
-}
-
-func (r *Redis) Get(ctx context.Context, key string) (string, error) {
-	return r.client.Get(ctx, key).Result()
-}
-
-func (r *Redis) Delete(ctx context.Context, key string) error {
-	return r.client.Del(ctx, key).Err()
+func (r *Redis) Client() *redis.Client {
+	return r.client
 }

@@ -8,6 +8,7 @@ import (
 	"rag-poc/internal/config"
 	"rag-poc/internal/llm"
 	"rag-poc/internal/rag"
+	"rag-poc/internal/redis"
 	"rag-poc/pkg/logger"
 
 	"github.com/gofiber/fiber/v2"
@@ -34,7 +35,7 @@ func main() {
 
 	app.Use(http.LoggerMiddleware(log))
 
-	redisClient, err := cache.NewRedis(cache.Config{
+	redisClient, err := redis.NewRedis(redis.Config{
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPass,
 		DB:       cfg.RedisDB,
@@ -43,6 +44,9 @@ func main() {
 		panic(err)
 	}
 
+	store := cache.NewRedisListStore(redisClient.Client())
+	conv := cache.NewConversation(store)
+
 	llmClient := llm.NewLlmClient(
 		log,
 		cfg.OllamaURL,
@@ -50,7 +54,7 @@ func main() {
 		5*time.Minute,
 	)
 
-	ragSvc := rag.NewService(log, llmClient, redisClient)
+	ragSvc := rag.NewService(log, llmClient, conv)
 
 	h := http.NewHandler(log, ragSvc)
 	http.Register(app, h)

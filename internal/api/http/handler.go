@@ -2,8 +2,12 @@ package http
 
 import (
 	"bufio"
+	"context"
 	"rag-poc/internal/lang"
 	"rag-poc/internal/rag"
+	"rag-poc/pkg/helper"
+	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -20,10 +24,14 @@ func NewHandler(log *zap.Logger, ragSvc *rag.Service) *Handler {
 }
 
 func (h *Handler) Ask(c *fiber.Ctx) error {
-	context := "Ask"
+	this := "Ask"
+
+	ctx, cancel := context.WithTimeout(c.Context(), 2*time.Minute)
+	defer cancel()
 
 	log := Logger(c)
-	log.Info(context)
+
+	log.Info(this, zap.Any("headers", c.GetReqHeaders()), zap.Any("queries", c.Queries()))
 
 	q := c.Query("q")
 	if q == "" {
@@ -32,21 +40,29 @@ func (h *Handler) Ask(c *fiber.Ctx) error {
 
 	lang := lang.Detect(q)
 
-	resp, err := h.RAG.Query(c.Context(), q, lang)
+	sid := helper.GetSID(c)
+
+	resp, err := h.RAG.Query(ctx, sid, q, lang)
 	if err != nil {
 		return c.Status(500).SendString(err.Error())
 	}
 
-	log.Info("context", zap.String("resp", resp[:min(len(resp), 100)]+"..."))
+	c.Set("X-Session-ID", sid)
+
+	log.Info(this, zap.String("resp", helper.Cut(resp, 100)))
 
 	return c.SendString(resp)
 }
 
 func (h *Handler) AskStream(c *fiber.Ctx) error {
-	context := "AskStream"
+	this := "AskStream"
+
+	ctx, cancel := context.WithTimeout(c.Context(), 2*time.Minute)
+	defer cancel()
 
 	log := Logger(c)
-	log.Info(context)
+
+	log.Info(this, zap.Any("headers", c.GetReqHeaders()), zap.Any("queries", c.Queries()))
 
 	q := c.Query("q")
 	if q == "" {
@@ -59,18 +75,26 @@ func (h *Handler) AskStream(c *fiber.Ctx) error {
 	c.Set("Cache-Control", "no-cache")
 	c.Set("Connection", "keep-alive")
 
-	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		var resp string
+	sid := helper.GetSID(c)
 
-		w.WriteString("Answer: ")
-		_ = h.RAG.QueryStream(c.Context(), q, lang, func(token string) {
-			resp += token
+	var resp strings.Builder
+	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+
+		err := h.RAG.QueryStream(ctx, sid, q, lang, func(token string) {
+			resp.WriteString(token)
 			w.WriteString(token)
 			w.Flush()
 		})
-
-		log.Info("context", zap.String("resp", resp[:min(len(resp), 100)]+"..."))
+		if err != nil {
+			w.WriteString("event: error\ndata: " + err.Error() + "\n\n")
+			w.Flush()
+			return
+		}
 	})
+
+	c.Set("X-Session-ID", sid)
+
+	log.Info(this, zap.String("resp", helper.Cut(resp.String(), 100)))
 
 	return nil
 }
