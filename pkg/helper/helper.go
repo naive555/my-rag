@@ -1,6 +1,8 @@
 package helper
 
 import (
+	"regexp"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
@@ -22,4 +24,9 @@ func Cut(s string, n int) string {
 	}
 
 	return s[:n] + "..."
+}
+
+func StripHTML(s string) string {
+	re := regexp.MustCompile("<[^>]*>")
+	return re.ReplaceAllString(s, " ")
 }

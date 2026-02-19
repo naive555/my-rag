@@ -14,23 +14,29 @@ import (
 	"go.uber.org/zap"
 )
 
-type Service struct {
-	cfg  *config.Config
-	log  *zap.Logger
-	llm  *llm.LlmClient
-	conv *cache.Conversation
+type Retriever interface {
+	Search(ctx context.Context, q string, domain classifier.Domain, topK int) ([]string, error)
 }
 
-func NewService(cfg *config.Config, log *zap.Logger, llmClient *llm.LlmClient, conv *cache.Conversation) *Service {
+type Service struct {
+	cfg       *config.Config
+	log       *zap.Logger
+	llm       *llm.LlmClient
+	conv      *cache.Conversation
+	retriever Retriever
+}
+
+func NewService(cfg *config.Config, log *zap.Logger, conv *cache.Conversation, r Retriever, llmClient *llm.LlmClient) *Service {
 	if llmClient == nil {
 		panic("rag: llmClient is required")
 	}
 
 	return &Service{
-		cfg:  cfg,
-		log:  log,
-		llm:  llmClient,
-		conv: conv,
+		cfg:       cfg,
+		log:       log,
+		conv:      conv,
+		retriever: r,
+		llm:       llmClient,
 	}
 }
 
@@ -120,14 +126,22 @@ func (s *Service) QueryStream(
 	return nil
 }
 
-func (s *Service) retrieve(ctx context.Context, q string, domain classifier.Domain, topK int) []string {
-	// FUTURE:
-	// - embed(q)
-	// - vector search
-	// - permission filter
-	// - rerank
-	// - return top chunks
+func (s *Service) retrieve(
+	ctx context.Context,
+	q string,
+	domain classifier.Domain,
+	topK int,
+) []string {
 
-	// For now: no context
-	return []string{}
+	if s.retriever == nil || topK <= 0 {
+		return nil
+	}
+
+	chunks, err := s.retriever.Search(ctx, q, domain, topK)
+	if err != nil {
+		s.log.Warn("retrieve error", zap.Error(err))
+		return nil
+	}
+
+	return chunks
 }

@@ -10,6 +10,7 @@ import (
 	"rag-poc/internal/rag"
 	"rag-poc/internal/redis"
 	"rag-poc/pkg/logger"
+	"rag-poc/pkg/mock"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -45,7 +46,10 @@ func main() {
 	}
 
 	store := cache.NewRedisListStore(redisClient.Client())
+
 	conv := cache.NewConversation(store)
+
+	retriever := rag.NewManualRetriever(log, mock.FakeRepo{})
 
 	llmClient := llm.NewLlmClient(
 		log,
@@ -54,7 +58,7 @@ func main() {
 		5*time.Minute,
 	)
 
-	ragSvc := rag.NewService(cfg, log, llmClient, conv)
+	ragSvc := rag.NewService(cfg, log, conv, retriever, llmClient)
 
 	h := http.NewHandler(log, ragSvc)
 	http.Register(app, h)
