@@ -56,10 +56,10 @@ type StreamChunk struct {
 }
 
 func (c *LlmClient) GeneratePrompt(prompt string) (string, error) {
-	context := "llm.GeneratePrompt"
+	this := "llm.GeneratePrompt"
 
 	c.log.Info("request",
-		zap.String("context", context),
+		zap.String("context", this),
 		zap.String("prompt_preview", helper.Cut(prompt, 100)),
 	)
 
@@ -102,18 +102,18 @@ func (c *LlmClient) GeneratePrompt(prompt string) (string, error) {
 	}
 
 	c.log.Info("request",
-		zap.String("context", context),
-		zap.String("prompt_preview", helper.Cut(result.Response, 100)),
+		zap.String("context", this),
+		zap.String("result_preview", helper.Cut(result.Response, 100)),
 	)
 
 	return result.Response, nil
 }
 
 func (c *LlmClient) StreamGeneratePrompt(prompt string, onToken func(string)) error {
-	context := "llm.StreamGeneratePrompt"
+	this := "llm.StreamGeneratePrompt"
 
 	c.log.Info("request",
-		zap.String("context", context),
+		zap.String("context", this),
 		zap.String("prompt_preview", helper.Cut(prompt, 100)),
 	)
 
@@ -158,8 +158,8 @@ func (c *LlmClient) StreamGeneratePrompt(prompt string, onToken func(string)) er
 		}
 		if chunk.Done {
 			c.log.Info("request",
-				zap.String("context", context),
-				zap.String("prompt_preview", helper.Cut(result.String(), 100)),
+				zap.String("context", this),
+				zap.String("result_preview", helper.Cut(result.String(), 100)),
 			)
 			break
 		}
