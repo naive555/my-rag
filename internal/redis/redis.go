@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 type Redis struct {
@@ -17,7 +18,7 @@ type Config struct {
 	DB       int
 }
 
-func NewRedis(cfg Config) (*Redis, error) {
+func NewRedis(log *zap.Logger, cfg Config) (*Redis, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     cfg.Addr,
 		Password: cfg.Password,
@@ -30,6 +31,8 @@ func NewRedis(cfg Config) (*Redis, error) {
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		return nil, err
 	}
+
+	log.Info("Redis connected!")
 
 	return &Redis{client: rdb}, nil
 }

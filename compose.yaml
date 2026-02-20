@@ -26,6 +26,25 @@ services:
     networks:
       - rag-network
 
+  mongo:
+    container_name: rag_mongo
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - rag-network
+
   app:
     container_name: rag_app
     build:
@@ -37,6 +56,8 @@ services:
       ollama:
         condition: service_started
       redis:
+        condition: service_healthy
+      mongo:
         condition: service_healthy
     ports:
       - "3063:3063"
@@ -52,3 +73,4 @@ networks:
 
 volumes:
   ollama-data:
+  mongo-data:

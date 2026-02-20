@@ -6,9 +6,12 @@ import (
 	"rag-poc/internal/api/http"
 	"rag-poc/internal/cache"
 	"rag-poc/internal/config"
+	"rag-poc/internal/database"
+	"rag-poc/internal/embed"
 	"rag-poc/internal/llm"
 	"rag-poc/internal/rag"
 	"rag-poc/internal/redis"
+	"rag-poc/internal/vector"
 	"rag-poc/pkg/logger"
 	"rag-poc/pkg/mock"
 
@@ -28,15 +31,13 @@ func main() {
 	}
 	defer log.Sync()
 
-	log.Info("config loaded",
-		zap.String("port", cfg.Server.Port),
-	)
+	log.Info("Configs loaded!")
 
 	app := fiber.New()
 
 	app.Use(http.LoggerMiddleware(log))
 
-	redisClient, err := redis.NewRedis(redis.Config{
+	redisClient, err := redis.NewRedis(log, redis.Config{
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPass,
 		DB:       cfg.RedisDB,
@@ -45,11 +46,24 @@ func main() {
 		panic(err)
 	}
 
+	db, err := database.NewMongo(log, cfg.MongoURI, cfg.DBName)
+	if err != nil {
+		panic(err)
+	}
+
 	store := cache.NewRedisListStore(redisClient.Client())
 
 	conv := cache.NewConversation(store)
 
-	retriever := rag.NewManualRetriever(log, mock.FakeRepo{})
+	embed := embed.NewClient(cfg.OllamaURL, cfg.EmbedModel, time.Duration(cfg.EmbedTimeout)*time.Second)
+
+	var vecStore *vector.MongoStore
+	var retr rag.Retriever
+	if cfg.UseVector {
+		vecStore = vector.NewMongoStore(db, cfg.ColName)
+	} else {
+		retr = rag.NewManualRetriever(log, mock.FakeRepo{})
+	}
 
 	llmClient := llm.NewLlmClient(
 		log,
@@ -58,7 +72,7 @@ func main() {
 		5*time.Minute,
 	)
 
-	ragSvc := rag.NewService(cfg, log, conv, retriever, llmClient)
+	ragSvc := rag.NewService(cfg, log, conv, embed, vecStore, retr, llmClient)
 
 	h := http.NewHandler(log, ragSvc)
 	http.Register(app, h)

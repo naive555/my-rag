@@ -9,7 +9,9 @@ import (
 	"rag-poc/internal/cache"
 	"rag-poc/internal/classifier"
 	"rag-poc/internal/config"
+	"rag-poc/internal/embed"
 	"rag-poc/internal/llm"
+	"rag-poc/internal/vector"
 
 	"go.uber.org/zap"
 )
@@ -23,10 +25,12 @@ type Service struct {
 	log       *zap.Logger
 	llm       *llm.LlmClient
 	conv      *cache.Conversation
+	embed     *embed.Client
+	vector    *vector.MongoStore
 	retriever Retriever
 }
 
-func NewService(cfg *config.Config, log *zap.Logger, conv *cache.Conversation, r Retriever, llmClient *llm.LlmClient) *Service {
+func NewService(cfg *config.Config, log *zap.Logger, conv *cache.Conversation, embed *embed.Client, vector *vector.MongoStore, r Retriever, llmClient *llm.LlmClient) *Service {
 	if llmClient == nil {
 		panic("rag: llmClient is required")
 	}
@@ -35,6 +39,8 @@ func NewService(cfg *config.Config, log *zap.Logger, conv *cache.Conversation, r
 		cfg:       cfg,
 		log:       log,
 		conv:      conv,
+		embed:     embed,
+		vector:    vector,
 		retriever: r,
 		llm:       llmClient,
 	}
@@ -133,15 +139,33 @@ func (s *Service) retrieve(
 	topK int,
 ) []string {
 
-	if s.retriever == nil || topK <= 0 {
+	if topK <= 0 {
 		return nil
 	}
 
-	chunks, err := s.retriever.Search(ctx, q, domain, topK)
-	if err != nil {
-		s.log.Warn("retrieve error", zap.Error(err))
-		return nil
+	if s.vector != nil && s.embed != nil {
+		vec, err := s.embed.Embed(ctx, q)
+		if err == nil {
+			hits, err := s.vector.Search(ctx, vec, string(domain), topK)
+			if err == nil {
+				out := make([]string, 0, len(hits))
+				for _, h := range hits {
+					out = append(out, h.Text)
+				}
+				return out
+			}
+		}
+		s.log.Warn("vector search failed, fallback")
 	}
 
-	return chunks
+	if s.retriever != nil {
+		chunks, err := s.retriever.Search(ctx, q, domain, topK)
+		if err != nil {
+			s.log.Warn("retriever error", zap.Error(err))
+			return nil
+		}
+		return chunks
+	}
+
+	return nil
 }

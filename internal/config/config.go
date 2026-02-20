@@ -14,13 +14,15 @@ type Config struct {
 
 	Server Server
 
-	OllamaURL  string
-	LLMModel   string
-	EmbedModel string
+	OllamaURL    string
+	LLMModel     string
+	EmbedModel   string
+	EmbedTimeout int
 
-	MongoURI string
-	DBName   string
-	ColName  string
+	MongoURI  string
+	UseVector bool
+	DBName    string
+	ColName   string
 
 	RedisAddr string
 	RedisPass string

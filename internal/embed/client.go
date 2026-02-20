@@ -2,50 +2,66 @@ package embed
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 )
 
-type EmbedClient struct {
+type Client struct {
 	baseURL string
 	model   string
+	http    *http.Client
 }
 
-func NewEmbedClient(baseURL, model string) *EmbedClient {
-	if baseURL == "" {
-		panic("llm: baseURL is required")
-	}
-	if model == "" {
-		panic("llm: model is required")
-	}
-
-	return &EmbedClient{
+func NewClient(baseURL, model string, timeout time.Duration) *Client {
+	return &Client{
 		baseURL: baseURL,
 		model:   model,
+		http: &http.Client{
+			Timeout: timeout,
+		},
 	}
 }
 
-func (c *EmbedClient) Embed(text string) ([]float64, error) {
+func (c *Client) Embed(ctx context.Context, text string) ([]float32, error) {
 	reqBody := map[string]any{
 		"model": c.model,
 		"input": text,
 	}
 
-	b, _ := json.Marshal(reqBody)
+	b, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
 
-	resp, err := http.Post(
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
 		c.baseURL+"/api/embeddings",
-		"application/json",
 		bytes.NewBuffer(b),
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	defer resp.Body.Close()
 
-	var out struct {
-		Embedding []float64 `json:"embedding"`
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("embed http %d", resp.StatusCode)
 	}
+
+	var out struct {
+		Embedding []float32 `json:"embedding"`
+	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		return nil, err
 	}
