@@ -6,11 +6,12 @@ import (
 	"rag-poc/internal/api/http"
 	"rag-poc/internal/cache"
 	"rag-poc/internal/config"
-	"rag-poc/internal/database"
 	"rag-poc/internal/embed"
+	"rag-poc/internal/infra/database"
+	"rag-poc/internal/infra/redis"
 	"rag-poc/internal/llm"
 	"rag-poc/internal/rag"
-	"rag-poc/internal/redis"
+	"rag-poc/internal/rag/retriever"
 	"rag-poc/internal/vector"
 	"rag-poc/pkg/logger"
 	"rag-poc/pkg/mock"
@@ -62,7 +63,7 @@ func main() {
 	if cfg.UseVector {
 		vecStore = vector.NewMongoStore(db, cfg.ColName)
 	} else {
-		retr = rag.NewManualRetriever(log, mock.FakeRepo{})
+		retr = retriever.NewManualRetriever(log, mock.FakeRepo{})
 	}
 
 	llmClient := llm.NewLlmClient(

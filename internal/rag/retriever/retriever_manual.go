@@ -1,4 +1,4 @@
-package rag
+package retriever
 
 import (
 	"context"
